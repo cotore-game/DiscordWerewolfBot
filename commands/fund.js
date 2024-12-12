@@ -1,7 +1,7 @@
-// SlashCommandBuilder という部品を discord.js からインポートしています。
+// SlashCommandBuilder という部品を discord.js からインポート
 const { SlashCommandBuilder } = require('discord.js');
 
-// 以下の形式にすることで、他のファイルでインポートして使用できるようになります。
+// 以下の形式にすることで、他のファイルでインポートして使用できるようになるらしい。
 module.exports = {
     commands: [
         {
@@ -9,7 +9,7 @@ module.exports = {
                 .setName('epen')
                 .setDescription('Epenを労るコマンドです(笑)'),
             execute: async function(interaction) {
-                await interaction.reply('よちよち～');
+                await interaction.reply('まいにちがんばっててえらいね:Bikyaku:、えぺんちゃん！よしよし( T_T)＼(^-^ )');
             },
         },
         {
@@ -18,7 +18,10 @@ module.exports = {
                 .setDescription('ボットの自己紹介を送信するコマンドです'),
             execute: async function(interaction) {
                 try {
+                    // インタラクションのプロパティにuserがあり、それが送信者の情報を保持してるみたい
                     await interaction.user.send('こんにちは！私は人狼ゲームをサポートするボットです。ゲームの進行や役職説明などを行います。ぜひ使ってみてください！');
+
+                    // このephemeral属性は、コマンド送信者のみに表示されるメッセージかどうかのフラグ
                     await interaction.reply({ content: 'DMに自己紹介を送信しました！', ephemeral: true });
                 } catch (error) {
                     console.error(error);
@@ -27,6 +30,8 @@ module.exports = {
             },
         },
         {
+
+            // ここの役職一覧、およびその説明はjsonかcsvなどの外部ファイル形式で管理するか、DB使いたいねぇ
             data: new SlashCommandBuilder()
                 .setName('intro')
                 .setDescription('人狼ゲームの役職と陣営について説明します')
@@ -58,6 +63,64 @@ module.exports = {
                 }
 
                 await interaction.reply(description);
+            },
+        },
+        {
+            data: new SlashCommandBuilder()
+                .setName('wtf')
+                .setDescription('迷言'),
+            execute: async function(interaction) {
+                const jokes = [
+                    'うわなにをするくぁwせdrftgyふじこlp',
+                    '病気かな？ 病気じゃないよ 病気だよ',
+                    'まるで将棋だな。',
+                    'おもしれー女',
+                    '真の男女平等主義者な俺は、女の子相手でもドロップキックをくらわせられる男',
+                    '芋けんぴ髪に付いてたよ',
+                    'ギャーギャーギャーギャーやかましいんだよ。発情期ですかコノヤロー',
+                    '野球拳をしたら全裸になるのが常識だろう？',
+                    '健康的な下乳を見ると健康になれるから最高！！'
+                ];
+                const joke = jokes[Math.floor(Math.random() * jokes.length)];
+                await interaction.reply(joke);
+            },
+        },
+        {
+            data: new SlashCommandBuilder()
+                .setName('vote')
+                .setDescription('投票のデモ')
+                .addUserOption(option => 
+                    option.setName('target')
+                        .setDescription('投票対象を選んでください')
+                        .setRequired(true)),
+            execute: async function(interaction) {
+                const target = interaction.options.getUser('target');
+                await interaction.reply(`${target.username}に投票しました！`);
+            },
+        },
+        {
+            data: new SlashCommandBuilder()
+                .setName('setactivity')
+                .setDescription('Botのアクティビティを設定')
+                .addStringOption(option => 
+                    option.setName('type')
+                        .setDescription('アクティビティの種類を選択してください')
+                        .setRequired(true)
+                        .addChoices(
+                            { name: 'PLAYING', value: 'PLAYING' },
+                            { name: 'STREAMING', value: 'STREAMING' },
+                            { name: 'LISTENING', value: 'LISTENING' },
+                            { name: 'WATCHING', value: 'WATCHING' }
+                        ))
+                .addStringOption(option => 
+                    option.setName('text')
+                        .setDescription('アクティビティの内容を入力してください')
+                        .setRequired(true)),
+            execute: async function(interaction) {
+                const type = interaction.options.getString('type');
+                const text = interaction.options.getString('text');
+                interaction.client.user.setActivity(text, { type });
+                await interaction.reply(`アクティビティを「${type}: ${text}」に設定しました！`);
             },
         }
     ]

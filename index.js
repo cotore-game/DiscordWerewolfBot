@@ -5,7 +5,7 @@ const { commands } = require('./commands/fund.js');
 // クライアントインスタンスを作成
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-// クライアントオブジェクトが準備OKとなったとき一度だけ実行されます
+// クライアントオブジェクトが準備OKとなったとき一度だけ実行される(と思う)
 client.once(Events.ClientReady, c => {
     console.log(`準備OKです! ${c.user.tag}がログインします。`);
 });
