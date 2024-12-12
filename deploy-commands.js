@@ -3,7 +3,7 @@ const { REST, Routes } = require('discord.js');
 // 環境変数としてapplicationId, guildId, tokenの3つが必要
 const { applicationId, guildId, token } = require('./config.json');
 // hey.jsのmodule.exportsを呼び出す
-const { commands } = require('./commands/hey.js');
+const { commands } = require('./commands/fund.js');
 
 // すべてのコマンドをリスト形式で登録
 const commandData = commands.map(command => command.data.toJSON());
