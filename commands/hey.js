@@ -5,7 +5,7 @@ const { SlashCommandBuilder } = require('discord.js');
 // 以下の形式にすることで、他のファイルでインポートして使用できるようになります。
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('Epen')
+		.setName('epen')
 		.setDescription('Epenを労るコマンドです(笑)'),
 	execute: async function(interaction) {
 		await interaction.reply('よちよち～');
