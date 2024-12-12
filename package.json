@@ -1,0 +1,15 @@
+{
+  "name": "werewolfbot",
+  "version": "1.0.0",
+  "description": "独自の役職が多い人狼ゲームを遊ぶにあたって、GM運営が超大変だったので補佐 / 代行するBot Discord上でVCを使った人狼ゲームを想定して作成する。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.16.3"
+  }
+}
