@@ -1,5 +1,5 @@
 // hey.jsのmodule.exportsを呼び出します。
-const heyFile = require('./commands/hello.js');
+const heyFile = require('./commands/hey.js');
 
 // discord.jsライブラリの中から必要な設定を呼び出し、変数に保存します
 const { Client, Events, GatewayIntentBits } = require('discord.js');

@@ -2,7 +2,7 @@
 const { REST, Routes } = require('discord.js');
 
 // hey.jsのmodule.exportsを呼び出します。
-const heyFile = require('./commands/hello.js');
+const heyFile = require('./commands/hey.js');
 
 // 環境変数としてapplicationId, guildId, tokenの3つが必要です
 const { applicationId, guildId, token } = require('./config.json');
