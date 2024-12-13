@@ -1,3 +1,6 @@
+// 新規ゲーム作成、終了、メンバー管理のみ
+// ゲーム進行は別スクリプトにする
+
 const {
     SlashCommandBuilder,
     ActionRowBuilder,
@@ -5,19 +8,20 @@ const {
     ButtonStyle,
     ModalBuilder,
     TextInputBuilder,
-    TextInputStyle
+    TextInputStyle,
+    time
 } = require('discord.js');
 
 // 参加者リストを保持するセット
 const participants = new Set();
 // Enumの代わり
 const gameStatus = Object.freeze({
-    wating: 'wating',
+    waiting: 'waiting',
     active: 'active',
     ended: 'ended',
 })
 
-let gameState = gameStatus.wating; // ゲームの状態
+let gameState = gameStatus.waiting; // ゲームの状態
 
 let gameSettings = { // ゲーム設定の初期値 jsonでいずれ管理したい。DBでもいいよ
     roles: {
@@ -25,7 +29,7 @@ let gameSettings = { // ゲーム設定の初期値 jsonでいずれ管理した
         werewolf: 1,
         villager: 2
     },
-    minPlayers: 4,
+    minPlayers: 1,
     firstNightSeer: true
 };
 
@@ -35,9 +39,10 @@ module.exports = {
         {
             data: new SlashCommandBuilder()
                 .setName('newgame')
-                .setDescription('新しいゲームを開始します。参加者を募集します。'),
+                .setDescription('新しいゲームを開始します'),
             execute: async function(interaction) {
-                if (gameState !== gameStatus.wating) {
+                // 例外処理
+                if (gameState !== gameStatus.waiting) {
                     await interaction.reply({ content: '現在のゲームは進行中か終了済みのため、新しいゲームを開始できません。', ephemeral: true });
                     return;
                 }
@@ -56,10 +61,10 @@ module.exports = {
                 });
 
                 const filter = i => i.customId === 'join_game';
-                const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60000 });
+                const collector = interaction.channel.createMessageComponentCollector({ filter });
 
                 collector.on('collect', async i => {
-                    if (gameState !== gameStatus.wating) {
+                    if (gameState !== gameStatus.waiting) {
                         await i.reply({ content: '現在のゲームは進行中か終了済みのため、参加できません。', ephemeral: true });
                         return;
                     }
@@ -71,13 +76,19 @@ module.exports = {
                         await i.reply(`${i.user.username} さんが参加しました！`);
                     }
                 });
+            }
+        },
 
-                collector.on('end', async () => {
-                    await interaction.followUp({
-                        content: '参加受付を終了しました。',
-                        components: []
-                    });
-                });
+        // test用無理やりゲーム終了コマンド
+        {
+            data: new SlashCommandBuilder()
+                .setName('forcetoendgame')
+                .setDescription('すおくあ以外はコマンドを実行しないこと。'),
+            execute: async function(interaction){
+                gameState = gameStatus.waiting;
+                participants.clear();
+                await interaction.reply('むりやりゲーム終了');
+                return;
             }
         },
 
@@ -85,7 +96,7 @@ module.exports = {
         {
             data: new SlashCommandBuilder()
                 .setName('startgame')
-                .setDescription('現在の参加者でゲームを開始します。'),
+                .setDescription('現在の参加者でゲームを開始します'),
             execute: async function(interaction) {
                 // 例外処理
                 if(gameState === gameStatus.ended) {
@@ -93,8 +104,8 @@ module.exports = {
                     return;
                 }
 
-                if (gameState !== gameStatus.wating) {
-                    await interaction.reply('ゲームを開始できません。現在のゲームは進行中か終了済みです。');
+                if (gameState === gameStatus.active) {
+                    await interaction.reply('ゲームを開始できません。現在のゲームは進行中です。');
                     return;
                 }
 
@@ -119,11 +130,11 @@ module.exports = {
             }
         },
 
-        // ゲームの進行設定
+        // ゲームの進行設定 ボタンとかトグル系のUIに変更すべき
         {
             data: new SlashCommandBuilder()
                 .setName('settings')
-                .setDescription('ゲームの設定を変更します。'),
+                .setDescription('ゲームの設定を変更します'),
             execute: async function(interaction) {
                 const modal = new ModalBuilder()
                     .setCustomId('game_settings')
@@ -156,7 +167,7 @@ module.exports = {
                 await interaction.showModal(modal);
 
                 const filter = i => i.customId === 'game_settings' && i.user.id === interaction.user.id;
-                interaction.awaitModalSubmit({ filter, time: 300000 })
+                interaction.awaitModalSubmit({ filter })
                     .then(async modalInteraction => {
                         const roles = modalInteraction.fields.getTextInputValue('roles');
                         const minPlayers = parseInt(modalInteraction.fields.getTextInputValue('min_players'), 10);
