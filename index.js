@@ -5,7 +5,7 @@ const {
 } = require('discord.js');
 const { token: DISCORD_BOT_TOKEN } = require('./config.json');
 //const { commands } = require('./commands/fund.js');
-// ディレクトリから読み込む
+// ディレクトリから読み込む為に必要
 const { readdirSync } = require('fs');
 
 // コマンドを保持するマップ

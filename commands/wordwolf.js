@@ -59,7 +59,7 @@ module.exports = {
         {
             data: new SlashCommandBuilder()
                 .setName('wordwlf_assign')
-                .setDescription('参加者にワードを割り当ててゲームを開始します'),
+                .setDescription('参加者にワードを割り当ててゲームを開始します(ワードウルフ用)'),
             execute: async function(interaction) {
                 if (gameState !== "active") {
                     await interaction.reply('ゲームは開始されていません。');
@@ -90,13 +90,13 @@ module.exports = {
                     }
                 });
 
-                await interaction.reply('ワードが全員に配布されました！議論を開始してください！');
+                await interaction.reply('ワードが全員に配布されました！議論を始めてください！(投票はwordwlf_voteで可能です)');
             }
         },
         {
             data: new SlashCommandBuilder()
                 .setName('wordwlf_vote')
-                .setDescription('ゲームに参加している人に投票します')
+                .setDescription('ウルフだと思う人を選んで投票できます。(ワードウルフ用)')
                 .addUserOption(option =>
                     option.setName('target')
                         .setDescription('投票先ユーザー')
@@ -131,7 +131,7 @@ module.exports = {
         {
             data: new SlashCommandBuilder()
                 .setName('wordwlf_reveal')
-                .setDescription('全員のワードと投票結果を公開して答え合わせをします'),
+                .setDescription('全員のワードと投票結果を公開して答え合わせをします(ワードウルフ用)'),
             execute: async function(interaction) {
                 if (gameState !== "active") {
                     await interaction.reply('ゲームは進行中ではありません。');

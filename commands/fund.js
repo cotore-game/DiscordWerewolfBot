@@ -85,19 +85,6 @@ module.exports = {
                 await interaction.reply(joke);
             },
         },
-        {
-            data: new SlashCommandBuilder()
-                .setName('vote')
-                .setDescription('投票のデモ')
-                .addUserOption(option => 
-                    option.setName('target')
-                        .setDescription('投票対象を選んでください')
-                        .setRequired(true)),
-            execute: async function(interaction) {
-                const target = interaction.options.getUser('target');
-                await interaction.reply(`${target.username}に投票しました！`);
-            },
-        }
     ]
 };
 
