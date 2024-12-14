@@ -1,3 +1,7 @@
 # ボットのアクセストークンが含まれてるんで、除外しないと不味いです。
 
 /config.json
+
+# 一々ワード更新の為にコミットしたくないのと、内輪ノリ、身内ネタが含まれるので除外します。
+/gameData/wordwolf/wordgroupsData.json
+/gameData/werewolf/roles.json
