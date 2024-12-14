@@ -6,11 +6,16 @@ const {
 } = require('discord.js');
 const wordGroups = require('../gameData/wordwolf/wordgroupsData.json'); // 外部ファイルからワード群をインポート
 
+const gameStatus = Object.freeze({
+    waiting: 'waiting',
+    active: 'active',
+})
+
 let participants = new Map(); // ユーザーと割り当てられたワードを保持
 let votes = new Map(); // 誰が誰に投票したか
 let wolfWord = null;
 let citizenWord = null;
-let gameState = "waiting";
+let gameState = gameStatus.waiting;
 
 module.exports = {
     commands: [
@@ -19,12 +24,12 @@ module.exports = {
                 .setName('wordwlf_newgame')
                 .setDescription('ワードウルフをはじめ、メンバーを募集します'),
             execute: async function(interaction) {
-                if (gameState !== "waiting") {
+                if (gameState !== gameStatus.waiting) {
                     await interaction.reply({ content: '現在のゲームは進行中か終了済みのため、新しいゲームを開始できません。', ephemeral: true });
                     return;
                 }
 
-                gameState = "active";
+                gameState = gameStatus.active;
                 participants.clear();
                 votes.clear();
                 wolfWord = null;
@@ -61,7 +66,7 @@ module.exports = {
                 .setName('wordwlf_assign')
                 .setDescription('参加者にワードを割り当ててゲームを開始します(ワードウルフ用)'),
             execute: async function(interaction) {
-                if (gameState !== "active") {
+                if (gameState !== gameStatus.active) {
                     await interaction.reply('ゲームは開始されていません。');
                     return;
                 }
@@ -103,7 +108,7 @@ module.exports = {
                         .setRequired(true)
                 ),
             execute: async function(interaction) {
-                if (gameState !== "active") {
+                if (gameState !== gameStatus.active) {
                     await interaction.reply('ゲームは進行中ではありません。');
                     return;
                 }
@@ -133,7 +138,7 @@ module.exports = {
                 .setName('wordwlf_reveal')
                 .setDescription('全員のワードと投票結果を公開して答え合わせをします(ワードウルフ用)'),
             execute: async function(interaction) {
-                if (gameState !== "active") {
+                if (gameState !== gameStatus.active) {
                     await interaction.reply('ゲームは進行中ではありません。');
                     return;
                 }
@@ -156,7 +161,7 @@ module.exports = {
                     voteOutput += `@${voter} -> @${voted}\n`;
                 });
 
-                gameState = "waiting";
+                gameState = gameStatus.waiting;
                 participants.clear();
                 votes.clear();
                 wolfWord = null;
