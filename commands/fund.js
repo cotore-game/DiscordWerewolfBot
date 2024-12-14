@@ -85,44 +85,6 @@ module.exports = {
                 await interaction.reply(joke);
             },
         },
-        {
-            data: new SlashCommandBuilder()
-                .setName('vote')
-                .setDescription('投票のデモ')
-                .addUserOption(option => 
-                    option.setName('target')
-                        .setDescription('投票対象を選んでください')
-                        .setRequired(true)),
-            execute: async function(interaction) {
-                const target = interaction.options.getUser('target');
-                await interaction.reply(`${target.username}に投票しました！`);
-            },
-        },
-        {
-            data: new SlashCommandBuilder()
-                .setName('setactivity')
-                .setDescription('Botのアクティビティを設定')
-                .addStringOption(option => 
-                    option.setName('type')
-                        .setDescription('アクティビティの種類を選択してください')
-                        .setRequired(true)
-                        .addChoices(
-                            { name: 'PLAYING', value: 'PLAYING' },
-                            { name: 'STREAMING', value: 'STREAMING' },
-                            { name: 'LISTENING', value: 'LISTENING' },
-                            { name: 'WATCHING', value: 'WATCHING' }
-                        ))
-                .addStringOption(option => 
-                    option.setName('text')
-                        .setDescription('アクティビティの内容を入力してください')
-                        .setRequired(true)),
-            execute: async function(interaction) {
-                const type = interaction.options.getString('type');
-                const text = interaction.options.getString('text');
-                interaction.client.user.setActivity(text, { type });
-                await interaction.reply(`アクティビティを「${type}: ${text}」に設定しました！`);
-            },
-        }
     ]
 };
 
