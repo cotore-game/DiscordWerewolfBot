@@ -82,7 +82,7 @@ module.exports = {
         // test用無理やりゲーム終了コマンド
         {
             data: new SlashCommandBuilder()
-                .setName('gcc-jinrou_forcetoend')
+                .setName('gcc-jinrou_forcequit')
                 .setDescription('すおくあ以外はコマンドを実行しないこと'),
             execute: async function(interaction){
                 gameState = gameStatus.waiting;

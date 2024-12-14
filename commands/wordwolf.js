@@ -22,7 +22,7 @@ module.exports = {
         {
             data: new SlashCommandBuilder()
                 .setName('wordwlf_newgame')
-                .setDescription('ワードウルフをはじめ、メンバーを募集します'),
+                .setDescription('ワードウルフのメンバーを募集します'),
             execute: async function(interaction) {
                 if (gameState !== gameStatus.waiting) {
                     await interaction.reply({ content: '現在のゲームは進行中か終了済みのため、新しいゲームを開始できません。', ephemeral: true });
@@ -42,13 +42,15 @@ module.exports = {
 
                 const actionRow = new ActionRowBuilder().addComponents(joinButton);
 
-                await interaction.reply({
+                // メッセージを取得して再利用可能にする
+                const message = await interaction.reply({
                     content: 'ワードウルフゲームが始まりました！下のボタンを押して参加してください。',
-                    components: [actionRow]
+                    components: [actionRow],
+                    fetchReply: true // メッセージを取得
                 });
 
                 const filter = i => i.customId === 'join_wordwolf';
-                const collector = interaction.channel.createMessageComponentCollector({ filter });
+                const collector = message.createMessageComponentCollector({ filter });
 
                 collector.on('collect', async i => {
                     if (participants.has(i.user.id)) {
@@ -57,7 +59,17 @@ module.exports = {
                     }
 
                     participants.set(i.user.id, { user: i.user, word: null });
+                    // ephemeral属性をなくす意図があるため変更しない
                     await i.reply(`${i.user.username} さんが参加しました！`);
+                });
+
+                collector.on('end', async () => {
+                    try {
+                        // 終了時にボタンを無効化する
+                        await message.edit({ content: '参加募集が終了しました。', components: [] });
+                    } catch (error) {
+                        console.error('Collector終了時のメッセージ編集エラー:', error);
+                    }
                 });
             }
         },

@@ -1,7 +1,3 @@
 # ボットのアクセストークンが含まれてるんで、除外しないと不味いです。
 
 /config.json
-
-# jsonとかのゲームデータファイルだから編集頻度たかいので一々コミットしたくない
-./gameData/wordwolf/wordgroupsData.json
-./gameData/werewolf/roles.json
