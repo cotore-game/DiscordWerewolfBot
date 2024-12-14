@@ -286,6 +286,21 @@ module.exports = {
                 citizenWord = null;
                 currentTheme = null;
             }            
+        },
+        {
+            data: new SlashCommandBuilder()
+                .setName('wordwlf_forcequit')
+                .setDescription('ワードウルフを強制終了させる'),
+            execute: async function(interaction) {
+                gameState = gameStatus.waiting;
+                participants.clear();
+                votes.clear();
+                wolfWord = null;
+                citizenWord = null;
+                currentTheme = null;
+
+                await interaction.reply('強制終了したよん');
+            }
         }
     ]
 }
