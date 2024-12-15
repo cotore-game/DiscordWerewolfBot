@@ -154,7 +154,7 @@ module.exports = {
 
                 const voterNames = Array.from(votes.keys()).map(id => participants.get(id).user.displayName).join(', ');
 
-                await interaction.reply({ content: `@${interaction.user.displayName} が投票しました！ (${completedVotes}/${totalParticipants})\n投票済み: ${voterNames}`, ephemeral: false });
+                await interaction.reply({ content: `${interaction.user.displayName} さんが投票しました！ (${completedVotes}/${totalParticipants})\n投票済み: ${voterNames}`, ephemeral: false });
             }
         },
         {
@@ -201,7 +201,7 @@ module.exports = {
                 votes.forEach((votedId, voterId) => {
                     const voter = participants.get(voterId).user.displayName;
                     const voted = participants.get(votedId).user.displayName;
-                    voteOutput += `@${voter} -> @${voted}\n`;
+                    voteOutput += `${voter} -> ${voted}\n`;
                 });
             
                 if (mostVotedId) {
