@@ -66,7 +66,7 @@ module.exports = {
                     }
 
                     participants.set(i.user.id, { user: i.user, word: null });
-                    await i.reply(`${i.user.username} さんが参加しました！`);
+                    await i.reply(`${i.user.displayName} さんが参加しました！`);
                 });
 
                 collector.on('end', async () => {
@@ -88,8 +88,8 @@ module.exports = {
                     return;
                 }
 
-                if (participants.size < 3) {
-                    await interaction.reply('ゲームを開始するには少なくとも3人の参加者が必要だよ！\n友達を連れてこよう🌚');
+                if (participants.size < 1) {
+                    await interaction.reply('ゲームを開始するには少なくとも3人の参加者が必要だよ！\n 友達を連れてこよう🌚');
                     return;
                 }
 
@@ -107,7 +107,7 @@ module.exports = {
                 participantArray.forEach((participant, index) => {
                     if (index === wolfIndex) {
                         participant.word = wolfWord;
-                        participant.user.send(`**🐺あなたのワードは「${wolfWord}」です。**`).catch(console.error);
+                        participant.user.send(`**あなたのワードは「${wolfWord}」です。**`).catch(console.error);
                     } else {
                         participant.word = citizenWord;
                         participant.user.send(`**あなたのワードは「${citizenWord}」です。**`).catch(console.error);
@@ -158,9 +158,9 @@ module.exports = {
                 const completedVotes = votes.size;
                 const totalParticipants = participants.size;
 
-                const voterNames = Array.from(votes.keys()).map(id => participants.get(id).user.username).join(', ');
+                const voterNames = Array.from(votes.keys()).map(id => participants.get(id).user.displayName).join(', ');
 
-                await interaction.reply({ content: `@${interaction.user.username} が投票しました！ (${completedVotes}/${totalParticipants})\n投票済み: ${voterNames}`, ephemeral: false });
+                await interaction.reply({ content: `${interaction.user.displayName} さんが投票しました！ (${completedVotes}/${totalParticipants})\n投票済み: ${voterNames}`, ephemeral: false });
             }
         },
         {
@@ -198,26 +198,26 @@ module.exports = {
 
                 participants.forEach(({ user, word }) => {
                     if (word === wolfWord) {
-                        wolfOutput += `@${user.username} : ${word}\n`;
+                        wolfOutput += `${user.displayName} : ${word}\n`;
                     } else {
-                        citizenOutput += `@${user.username} : ${word}\n`;
+                        citizenOutput += `${user.displayName} : ${word}\n`;
                     }
                 });
 
                 votes.forEach((votedId, voterId) => {
-                    const voter = participants.get(voterId).user.username;
-                    const voted = participants.get(votedId).user.username;
-                    voteOutput += `@${voter} -> @${voted}\n`;
+                    const voter = participants.get(voterId).user.displayName;
+                    const voted = participants.get(votedId).user.displayName;
+                    voteOutput += `${voter} -> ${voted}\n`;
                 });
 
                 if (mostVotedId) {
-                    const wolfPlayer = participants.get(mostVotedId).user.username;
-
+                    const wolfPlayer = participants.get(mostVotedId).user.displayName;
+                  
                     if (participants.get(mostVotedId).word !== wolfWord) {
                         // 投票負け(1)
                         const resultEmbed = new EmbedBuilder()
                             .setTitle('🏆 **結果発表** 🏆')
-                            .setDescription(`${wolfOutput}${citizenOutput}${voteOutput}\n\n村人たちは人狼を当てられなかった... \n**人狼の勝利！** 🎉`)
+                            .setDescription(`${wolfOutput}${citizenOutput}${voteOutput}\n\n村人たちは人狼を当てられなかった... \n**人狼の勝利！** 👿🐺`)
                             .setColor('Red');
 
                         await interaction.reply({ embeds: [resultEmbed] });
@@ -260,7 +260,7 @@ module.exports = {
 
                         collector.on('collect', async (i) => {
                             if (i.user.id !== mostVotedId) {
-                                await i.reply({ content: '君は人狼じゃないだろう！実に馬鹿だな！♠️', ephemeral: true });
+                                await i.reply({ content: '君は人狼じゃないだろう！実に馬鹿だな！👹', ephemeral: true });
                                 return;
                             }
 
