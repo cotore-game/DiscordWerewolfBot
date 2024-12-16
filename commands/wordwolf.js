@@ -4,6 +4,9 @@ const {
     ButtonBuilder,
     ButtonStyle,
     EmbedBuilder,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
     StringSelectMenuBuilder
 } = require('discord.js');
 const wordGroups = require('../gameData/wordwolf/wordgroupsData.json'); // 外部ファイルからワード群をインポート
@@ -85,7 +88,7 @@ module.exports = {
                     return;
                 }
 
-                if (participants.size < 1) {
+                if (participants.size < 3) {
                     await interaction.reply('ゲームを開始するには少なくとも3人の参加者が必要だよ！\n友達を連れてこよう🌚');
                     return;
                 }
@@ -236,7 +239,7 @@ module.exports = {
                         const actionRowMenu = new ActionRowBuilder().addComponents(
                             new StringSelectMenuBuilder()
                                 .setCustomId('citizen_word_guess')
-                                .setPlaceholder('市民のワードを選択してください')
+                                .setPlaceholder('市民のワードを予想してね！')
                                 .addOptions(menuOptions)
                         );
 
@@ -291,6 +294,20 @@ module.exports = {
                 }
 
                 // もともとここでリセットしてた
+            }
+        },
+        {
+            data: new SlashCommandBuilder()
+                .setName('wordwlf_forcequit')
+                .setDescription('ワードウルフを強制終了させる'),
+            execute: async function() {
+                gameState = gameStatus.waiting;
+                participants.clear();
+                votes.clear();
+                wolfWord = null;
+                citizenWord = null;
+                currentTheme = null;
+                selectedGroup = null;
             }
         }
     ]
