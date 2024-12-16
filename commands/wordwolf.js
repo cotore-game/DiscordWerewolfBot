@@ -4,9 +4,6 @@ const {
     ButtonBuilder,
     ButtonStyle,
     EmbedBuilder,
-    ModalBuilder,
-    TextInputBuilder,
-    TextInputStyle,
     StringSelectMenuBuilder
 } = require('discord.js');
 const wordGroups = require('../gameData/wordwolf/wordgroupsData.json'); // 外部ファイルからワード群をインポート
@@ -23,6 +20,9 @@ let citizenWord = null;
 let currentTheme = null; // 現在のテーマ
 let selectedGroup = null;
 let gameState = gameStatus.waiting;
+
+// デバッグ用
+let Isdebug = false;
 
 module.exports = {
     commands: [
@@ -62,11 +62,13 @@ module.exports = {
                 collector.on('collect', async i => {
                     if (participants.has(i.user.id)) {
                         await i.reply({ content: '⚠️ 君はすでに参加してるよ？目立ちたがり屋なんだね。', ephemeral: true });
+                        if(Isdebug) console.log(`Already Joined : join_word_wolf/user:${i.user.id}`); // デバッグ用
                         return;
                     }
 
                     participants.set(i.user.id, { user: i.user, word: null });
                     await i.reply(`${i.user.displayName} さんが参加しました！`);
+                    if(Isdebug) console.log(`Join : join_word_wolf/user:${i.user.id}`); // デバッグ用
                 });
 
                 collector.on('end', async () => {
@@ -96,6 +98,8 @@ module.exports = {
                 selectedGroup = wordGroups[Math.floor(Math.random() * wordGroups.length)];
                 currentTheme = selectedGroup.theme; // テーマを取得
                 const words = selectedGroup.words;
+                if(Isdebug) console.log(`Theme : ${currentTheme}`); // デバッグ用
+
                 wolfWord = words[Math.floor(Math.random() * words.length)];
                 do {
                     citizenWord = words[Math.floor(Math.random() * words.length)];
@@ -108,9 +112,11 @@ module.exports = {
                     if (index === wolfIndex) {
                         participant.word = wolfWord;
                         participant.user.send(`**あなたのワードは「${wolfWord}」です。**`).catch(console.error);
+                        if(Isdebug) console.log(`Wolf : wolf_user:${i.user.id} / wolf_word:${wolfWord}`); // デバッグ用
                     } else {
                         participant.word = citizenWord;
                         participant.user.send(`**あなたのワードは「${citizenWord}」です。**`).catch(console.error);
+                        if(Isdebug) console.log(`Citizen : Citizen_user:${i.user.id} / Citizen_word:${citizenWord}`); // デバッグ用
                     }
                 });
 
@@ -160,6 +166,7 @@ module.exports = {
 
                 const voterNames = Array.from(votes.keys()).map(id => participants.get(id).user.displayName).join(', ');
 
+                if(Isdebug) console.log(`Voted: ${interaction.user.id} -> ${target.id}\n${completedVotes}/${totalParticipants})\n投票済み: ${voterNames}`); // デバッグ用
                 await interaction.reply({ content: `${interaction.user.displayName} さんが投票しました！ (${completedVotes}/${totalParticipants})\n投票済み: ${voterNames}`, ephemeral: false });
             }
         },
@@ -267,6 +274,7 @@ module.exports = {
                             if (i.customId === 'citizen_word_guess') {
                                 selectedWord = i.values[0]; // 選択したワードを取得
                                 //await i.reply({ content: `選んだワード: ${selectedWord}`, ephemeral: true });
+                                if(Isdebug) console.log(`Choosen: ${selectedWord}`); // デバッグ用
 
                                 collector.stop();
 
@@ -300,7 +308,7 @@ module.exports = {
             data: new SlashCommandBuilder()
                 .setName('wordwlf_forcequit')
                 .setDescription('ワードウルフを強制終了させる'),
-            execute: async function() {
+            execute: async function(interaction) {
                 gameState = gameStatus.waiting;
                 participants.clear();
                 votes.clear();
@@ -308,6 +316,20 @@ module.exports = {
                 citizenWord = null;
                 currentTheme = null;
                 selectedGroup = null;
+                await interaction.reply('ワードウルフを強制終了したよ');
+            }
+        },
+        {
+            data:SlashCommandBuilder()
+                .setName('__debug__')
+                .setDescription('(開発者用) ログをonにします'),
+            execute: async function(interaction){
+                Isdebug = !Isdebug;
+                if(interaction.user.id === 'suoqa'){
+                    await interaction.reply({ content: `Debug:${Isdebug}`, ephemeral: true});
+                }else{
+                    await interaction.reply({ content: 'あなたは実行できません。', ephemeral: true });
+                }
             }
         }
     ]
