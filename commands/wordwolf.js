@@ -62,13 +62,13 @@ module.exports = {
                 collector.on('collect', async i => {
                     if (participants.has(i.user.id)) {
                         await i.reply({ content: '⚠️ 君はすでに参加してるよ？目立ちたがり屋なんだね。', ephemeral: true });
-                        if(Isdebug) console.log(`Already Joined : join_word_wolf/user:${i.user.id}`); // デバッグ用
+                        if(Isdebug) console.log(`Already Joined : join_word_wolf/user:${i.user.displayName}`); // デバッグ用
                         return;
                     }
 
                     participants.set(i.user.id, { user: i.user, word: null });
                     await i.reply(`${i.user.displayName} さんが参加しました！`);
-                    if(Isdebug) console.log(`Join : join_word_wolf/user:${i.user.id}`); // デバッグ用
+                    if(Isdebug) console.log(`Join : join_word_wolf/user:${i.user.displayName}`); // デバッグ用
                 });
 
                 collector.on('end', async () => {
@@ -112,11 +112,11 @@ module.exports = {
                     if (index === wolfIndex) {
                         participant.word = wolfWord;
                         participant.user.send(`**あなたのワードは「${wolfWord}」です。**`).catch(console.error);
-                        if(Isdebug) console.log(`Wolf : wolf_user:${i.user.id} / wolf_word:${wolfWord}`); // デバッグ用
+                        if(Isdebug) console.log(`Wolf : wolf_user:${i.user.displayName} / wolf_word:${wolfWord}`); // デバッグ用
                     } else {
                         participant.word = citizenWord;
                         participant.user.send(`**あなたのワードは「${citizenWord}」です。**`).catch(console.error);
-                        if(Isdebug) console.log(`Citizen : Citizen_user:${i.user.id} / Citizen_word:${citizenWord}`); // デバッグ用
+                        if(Isdebug) console.log(`Citizen : Citizen_user:${i.user.displayName} / Citizen_word:${citizenWord}`); // デバッグ用
                     }
                 });
 
@@ -166,7 +166,7 @@ module.exports = {
 
                 const voterNames = Array.from(votes.keys()).map(id => participants.get(id).user.displayName).join(', ');
 
-                if(Isdebug) console.log(`Voted: ${interaction.user.id} -> ${target.id}\n${completedVotes}/${totalParticipants})\n投票済み: ${voterNames}`); // デバッグ用
+                if(Isdebug) console.log(`Voted: ${interaction.user.displayName} -> ${target.displayName}\n${completedVotes}/${totalParticipants})\n投票済み: ${voterNames}`); // デバッグ用
                 await interaction.reply({ content: `${interaction.user.displayName} さんが投票しました！ (${completedVotes}/${totalParticipants})\n投票済み: ${voterNames}`, ephemeral: false });
             }
         },
@@ -324,8 +324,8 @@ module.exports = {
                 .setName('__debug__')
                 .setDescription('(開発者用) ログをonにします'),
             execute: async function(interaction){
-                Isdebug = !Isdebug;
-                if(interaction.user.id === 'suoqa'){
+                if(interaction.user.username === 'suoqa'){
+                    Isdebug = !Isdebug;
                     await interaction.reply({ content: `Debug:${Isdebug}`, ephemeral: true});
                 }else{
                     await interaction.reply({ content: 'あなたは実行できません。', ephemeral: true });
