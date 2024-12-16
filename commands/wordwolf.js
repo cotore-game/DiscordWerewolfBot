@@ -112,11 +112,11 @@ module.exports = {
                     if (index === wolfIndex) {
                         participant.word = wolfWord;
                         participant.user.send(`**あなたのワードは「${wolfWord}」です。**`).catch(console.error);
-                        if(Isdebug) console.log(`Wolf : wolf_user:${i.user.displayName} / wolf_word:${wolfWord}`); // デバッグ用
+                        if(Isdebug) console.log(`Wolf : wolf_user:${participant.user.displayName} / wolf_word:${wolfWord}`); // デバッグ用
                     } else {
                         participant.word = citizenWord;
                         participant.user.send(`**あなたのワードは「${citizenWord}」です。**`).catch(console.error);
-                        if(Isdebug) console.log(`Citizen : Citizen_user:${i.user.displayName} / Citizen_word:${citizenWord}`); // デバッグ用
+                        if(Isdebug) console.log(`Citizen : Citizen_user:${participant.user.displayName} / Citizen_word:${citizenWord}`); // デバッグ用
                     }
                 });
 
