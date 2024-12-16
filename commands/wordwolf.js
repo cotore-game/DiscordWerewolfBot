@@ -4,9 +4,7 @@ const {
     ButtonBuilder,
     ButtonStyle,
     EmbedBuilder,
-    ModalBuilder,
-    TextInputBuilder,
-    TextInputStyle
+    StringSelectMenuBuilder
 } = require('discord.js');
 const wordGroups = require('../gameData/wordwolf/wordgroupsData.json'); // 外部ファイルからワード群をインポート
 
@@ -20,6 +18,7 @@ let votes = new Map(); // 誰が誰に投票したか
 let wolfWord = null;
 let citizenWord = null;
 let currentTheme = null; // 現在のテーマ
+let selectedGroup = null;
 let gameState = gameStatus.waiting;
 
 module.exports = {
@@ -86,12 +85,12 @@ module.exports = {
                     return;
                 }
 
-                if (participants.size < 3) {
+                if (participants.size < 1) {
                     await interaction.reply('ゲームを開始するには少なくとも3人の参加者が必要だよ！\n友達を連れてこよう🌚');
                     return;
                 }
 
-                const selectedGroup = wordGroups[Math.floor(Math.random() * wordGroups.length)];
+                selectedGroup = wordGroups[Math.floor(Math.random() * wordGroups.length)];
                 currentTheme = selectedGroup.theme; // テーマを取得
                 const words = selectedGroup.words;
                 wolfWord = words[Math.floor(Math.random() * words.length)];
@@ -105,12 +104,14 @@ module.exports = {
                 participantArray.forEach((participant, index) => {
                     if (index === wolfIndex) {
                         participant.word = wolfWord;
-                        participant.user.send(`**あなたのワードは「${wolfWord}」です。**`).catch(console.error);
+                        participant.user.send(`**🐺あなたのワードは「${wolfWord}」です。**`).catch(console.error);
                     } else {
                         participant.word = citizenWord;
                         participant.user.send(`**あなたのワードは「${citizenWord}」です。**`).catch(console.error);
                     }
                 });
+
+                console.log(`assign: ${currentTheme}`);
 
                 const embed = new EmbedBuilder()
                     .setTitle('🗣️ 話し合いのテーマ')
@@ -146,6 +147,8 @@ module.exports = {
                     return;
                 }
 
+                console.log(`vote: ${currentTheme}`);
+
                 votes.set(interaction.user.id, target.id);
 
                 // 投票進捗表示に必要
@@ -161,22 +164,22 @@ module.exports = {
             data: new SlashCommandBuilder()
                 .setName('wordwlf_reveal')
                 .setDescription('全員のワードと投票結果を公開して答え合わせをします(ワードウルフ用)'),
-            execute: async function(interaction) {
+            execute: async function (interaction) {
                 if (gameState !== gameStatus.active) {
                     await interaction.reply('ゲームは進行中ではないよ。/wordwlf_newgameで新しいゲームを始めてね。');
                     return;
                 }
-            
+
                 if (votes.size < participants.size) {
                     await interaction.reply('全員が投票を完了するまで結果を公開できないヨ？');
                     return;
                 }
-            
+
                 const voteCounts = new Map();
-                votes.forEach(votedId => {
+                votes.forEach((votedId) => {
                     voteCounts.set(votedId, (voteCounts.get(votedId) || 0) + 1);
                 });
-            
+
                 let mostVotedId = null;
                 let mostVotes = 0;
                 voteCounts.forEach((count, id) => {
@@ -185,11 +188,11 @@ module.exports = {
                         mostVotedId = id;
                     }
                 });
-            
+
                 let wolfOutput = `--🐺 **ウルフ** --\n`;
                 let citizenOutput = `--🟢 **市民** --\n`;
                 let voteOutput = `--📊 **投票結果** --\n`;
-            
+
                 participants.forEach(({ user, word }) => {
                     if (word === wolfWord) {
                         wolfOutput += `@${user.username} : ${word}\n`;
@@ -197,110 +200,107 @@ module.exports = {
                         citizenOutput += `@${user.username} : ${word}\n`;
                     }
                 });
-            
+
                 votes.forEach((votedId, voterId) => {
                     const voter = participants.get(voterId).user.username;
                     const voted = participants.get(votedId).user.username;
                     voteOutput += `@${voter} -> @${voted}\n`;
                 });
-            
+
                 if (mostVotedId) {
                     const wolfPlayer = participants.get(mostVotedId).user.username;
-            
+
                     if (participants.get(mostVotedId).word !== wolfWord) {
+                        // 投票負け(1)
                         const resultEmbed = new EmbedBuilder()
                             .setTitle('🏆 **結果発表** 🏆')
                             .setDescription(`${wolfOutput}${citizenOutput}${voteOutput}\n\n村人たちは人狼を当てられなかった... \n**人狼の勝利！** 🎉`)
                             .setColor('Red');
+
                         await interaction.reply({ embeds: [resultEmbed] });
+                        await ResetGame();
+
                     } else {
                         const resultEmbed = new EmbedBuilder()
-                            .setTitle('🐺 **ウルフ投票結果** 🐺')
+                            .setTitle('🐺 **投票結果** 🐺')
                             .setDescription(`ウルフは **@${wolfPlayer}** でした...\nウルフは市民側のワードを推測して的中することで逆転勝利するチャンス！！ 🎯\n\n${voteOutput}`)
                             .setColor('Gold');
-            
-                        const answerButton = new ButtonBuilder()
-                            .setCustomId('wolf_guess_modal')
-                            .setLabel('市民のワードを予想してね！')
-                            .setStyle(ButtonStyle.Primary);
-            
-                        const actionRow = new ActionRowBuilder().addComponents(answerButton);
-            
-                        await interaction.reply({ embeds: [resultEmbed], components: [actionRow] });
-            
-                        const filter = i => i.customId === 'wolf_guess_modal';
-                        const collector = interaction.channel.createMessageComponentCollector({ filter });
-            
-                        collector.on('collect', async i => {
+
+                        const menuOptions = selectedGroup.words
+                            .filter(word => word !== wolfWord) // 人狼のワードを除外
+                            .map(word => ({
+                                label: word,
+                                value: word
+                            }));
+
+                        const actionRowMenu = new ActionRowBuilder().addComponents(
+                            new StringSelectMenuBuilder()
+                                .setCustomId('citizen_word_guess')
+                                .setPlaceholder('市民のワードを選択してください')
+                                .addOptions(menuOptions)
+                        );
+
+                        await interaction.reply({
+                            content: '🐺 **人狼だけが操作できるよ！** 大逆転を目指そう',
+                            embeds: [resultEmbed],
+                            components: [actionRowMenu]
+                        });
+
+                        // インタラクション処理
+                        const filter = (i) => i.customId === 'citizen_word_guess' || i.customId === 'wolf_guess_submit';
+                        const collector = interaction.channel.createMessageComponentCollector({
+                            filter,
+                            time:0
+                        });
+
+                        let selectedWord = null;
+
+                        collector.on('collect', async (i) => {
                             if (i.user.id !== mostVotedId) {
                                 await i.reply({ content: '君は人狼じゃないだろう！実に馬鹿だな！♠️', ephemeral: true });
                                 return;
                             }
-            
-                            const modal = new ModalBuilder()
-                                .setCustomId('guess_word_modal')
-                                .setTitle('ワード予想')
-                                .addComponents(
-                                    new ActionRowBuilder().addComponents(
-                                        new TextInputBuilder()
-                                            .setCustomId('citizen_word_guess')
-                                            .setLabel('予想ワードを入力してね')
-                                            .setStyle(TextInputStyle.Short)
-                                            .setRequired(true)
-                                    )
-                                );
-            
-                            await i.showModal(modal);
-            
-                            try {
-                                const modalInteraction = await i.awaitModalSubmit({
-                                    filter: modalInteraction => modalInteraction.customId === 'guess_word_modal' && modalInteraction.user.id === mostVotedId,
-                                    time: 0 // 時間切れを無効化
-                                });
-            
-                                const guess = modalInteraction.fields.getTextInputValue('citizen_word_guess');
-                                let finalEmbed = new EmbedBuilder()
+
+                            if (i.customId === 'citizen_word_guess') {
+                                selectedWord = i.values[0]; // 選択したワードを取得
+                                //await i.reply({ content: `選んだワード: ${selectedWord}`, ephemeral: true });
+
+                                collector.stop();
+
+                                // 結果を表示
+                                const resultEmbed = new EmbedBuilder()
                                     .setTitle('🎉 **最終結果発表** 🎉')
                                     .setColor('Blue')
                                     .setDescription(`${wolfOutput}${citizenOutput}\n\n`);
-            
-                                if (guess === citizenWord) {
-                                    finalEmbed.setDescription(`${finalEmbed.data.description}ウルフ🐺が市民のワードを当てました！\n**ウルフの大逆転勝利！** 😈`);
+
+                                if (selectedWord === citizenWord) {
+                                    // 逆転勝ち(2)
+                                    resultEmbed.setDescription(`${resultEmbed.data.description}ウルフ🐺が市民のワードを当てました！\n**ウルフの大逆転勝利！** 😈`);
                                 } else {
-                                    finalEmbed.setDescription(`${finalEmbed.data.description}ウルフは市民のワードを当てられなかった...\n**村人たちの大勝利！** 🎉`);
+                                    // 推測負け(3)
+                                    resultEmbed.setDescription(`${resultEmbed.data.description}ウルフは市民のワードを当てられなかった...\n**村人たちの大勝利！** 🎉`);
                                 }
-            
-                                finalEmbed.addFields({ name: '📝 **ウルフの推測**', value: guess || 'なし', inline: true });
-                                await modalInteraction.reply({ embeds: [finalEmbed] });
-                            } catch (error) {
-                                console.error('モーダル送信エラー:', error);
+
+                                resultEmbed.addFields({ name: '📝 **ウルフの推測**', value: selectedWord, inline: true });
+                                await i.reply({ embeds: [resultEmbed] });
+                                await ResetGame();
                             }
                         });
+
                     }
                 }
-            
-                gameState = gameStatus.waiting;
-                participants.clear();
-                votes.clear();
-                wolfWord = null;
-                citizenWord = null;
-                currentTheme = null;
-            }            
-        },
-        {
-            data: new SlashCommandBuilder()
-                .setName('wordwlf_forcequit')
-                .setDescription('ワードウルフを強制終了させる'),
-            execute: async function(interaction) {
-                gameState = gameStatus.waiting;
-                participants.clear();
-                votes.clear();
-                wolfWord = null;
-                citizenWord = null;
-                currentTheme = null;
 
-                await interaction.reply('強制終了したよん');
+                // もともとここでリセットしてた
             }
         }
     ]
+}
+
+function ResetGame(){
+    gameState = gameStatus.waiting;
+    participants.clear();
+    votes.clear();
+    wolfWord = null;
+    citizenWord = null;
+    currentTheme = null;
 }

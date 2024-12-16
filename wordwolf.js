@@ -3,15 +3,16 @@ const {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    EmbedBuilder
+    EmbedBuilder,
+    ModalBuilder,
+    StringSelectMenuBuilder
 } = require('discord.js');
 const wordGroups = require('../gameData/wordwolf/wordgroupsData.json'); // 外部ファイルからワード群をインポート
 
 const gameStatus = Object.freeze({
     waiting: 'waiting',
     active: 'active',
-})
-
+});
 let participants = new Map(); // ユーザーと割り当てられたワードを保持
 let votes = new Map(); // 誰が誰に投票したか
 let wolfWord = null;
@@ -23,58 +24,61 @@ module.exports = {
     commands: [
         {
             data: new SlashCommandBuilder()
-                .setName('wordwlf_vote')
-                .setDescription('ウルフだと思う人を選んで投票できます。(ワードウルフ用)')
-                .addUserOption(option =>
-                    option.setName('target')
-                        .setDescription('投票先ユーザー')
-                        .setRequired(true)
-                ),
-            execute: async function(interaction) {
-                if (gameState !== gameStatus.active) {
-                    await interaction.reply('ゲームは進行中ではありません。');
+                .setName('wordwolf_assign')
+                .setDescription('参加者にワードを割り当ててゲームを開始します(ワードウルフ用)'),
+            execute: async function (interaction) {
+                if (gameState !== gameStatus.waiting) {
+                    await interaction.reply('ゲームは既に進行中です。');
                     return;
                 }
 
-                if (!participants.has(interaction.user.id)) {
-                    await interaction.reply({ content: 'あなたはゲームに参加していません。', ephemeral: true });
-                    return;
-                }
+                const selectedGroup = wordGroups[Math.floor(Math.random() * wordGroups.length)];
+                currentTheme = selectedGroup.theme; // テーマを取得
+                const words = selectedGroup.words;
+                wolfWord = words[Math.floor(Math.random() * words.length)];
+                do {
+                    citizenWord = words[Math.floor(Math.random() * words.length)];
+                } while (wolfWord === citizenWord);
 
-                const target = interaction.options.getUser('target');
-                if (!participants.has(target.id)) {
-                    await interaction.reply({ content: '投票先はゲームに参加していません。', ephemeral: true });
-                    return;
-                }
+                const participantArray = Array.from(participants.values());
+                const wolfIndex = Math.floor(Math.random() * participantArray.length);
 
-                votes.set(interaction.user.id, target.id);
+                participantArray.forEach((participant, index) => {
+                    if (index === wolfIndex) {
+                        participant.word = wolfWord;
+                        participant.user.send(`**🐺あなたのワードは「${wolfWord}」です。**`).catch(console.error);
+                    } else {
+                        participant.word = citizenWord;
+                        participant.user.send(`**あなたのワードは「${citizenWord}」です。**`).catch(console.error);
+                    }
+                });
 
-                // 投票進捗表示に必要
-                const completedVotes = votes.size;
-                const totalParticipants = participants.size;
+                const embed = new EmbedBuilder()
+                    .setTitle('🗣️ 話し合いのテーマ')
+                    .setDescription(`ワードのテーマはこれだ！！\n**テーマ:** ${currentTheme}`)
+                    .setColor('Blue');
+                await interaction.reply({ embeds: [embed] });
 
-                const voterNames = Array.from(votes.keys()).map(id => participants.get(id).user.username).join(', ');
-
-                await interaction.reply({ content: `@${interaction.user.username} が投票しました！ (${completedVotes}/${totalParticipants})\n投票済み: ${voterNames}`, ephemeral: false });
-            }
+                gameState = gameStatus.active;
+            },
         },
         {
             data: new SlashCommandBuilder()
-                .setName('wordwlf_reveal')
+                .setName('wordwolf_reveal')
                 .setDescription('全員のワードと投票結果を公開して答え合わせをします(ワードウルフ用)'),
-            execute: async function(interaction) {
+            execute: async function (interaction) {
                 if (gameState !== gameStatus.active) {
-                    await interaction.reply('ゲームは進行中ではありません。');
+                    await interaction.reply('ゲームは進行中ではないよ。/wordwlf_newgameで新しいゲームを始めてね。');
                     return;
                 }
 
                 if (votes.size < participants.size) {
-                    await interaction.reply('全員が投票を完了するまで結果を公開できません。');
+                    await interaction.reply('全員が投票を完了するまで結果を公開できないヨ？');
                     return;
                 }
 
                 const voteCounts = new Map();
-                votes.forEach(votedId => {
+                votes.forEach((votedId) => {
                     voteCounts.set(votedId, (voteCounts.get(votedId) || 0) + 1);
                 });
 
@@ -87,7 +91,7 @@ module.exports = {
                     }
                 });
 
-                let wolfOutput = `--🛑 **ウルフ** --\n`;
+                let wolfOutput = `--🐺 **ウルフ** --\n`;
                 let citizenOutput = `--🟢 **市民** --\n`;
                 let voteOutput = `--📊 **投票結果** --\n`;
 
@@ -105,49 +109,80 @@ module.exports = {
                     voteOutput += `@${voter} -> @${voted}\n`;
                 });
 
-                const resultEmbed = new EmbedBuilder()
-                    .setTitle('🎉 **結果発表** 🎉')
-                    .setDescription(`${wolfOutput}${citizenOutput}${voteOutput}`)
-                    .setColor('Gold');
-
                 if (mostVotedId) {
-                    if (participants.get(mostVotedId).word === wolfWord) {
-                        resultEmbed.addFields({ name: '🏆 **結果**', value: 'ウルフが投票で選ばれました！村人たちの勝利です！ 🎉' });
+                    const wolfPlayer = participants.get(mostVotedId).user.username;
+
+                    if (participants.get(mostVotedId).word !== wolfWord) {
+                        const resultEmbed = new EmbedBuilder()
+                            .setTitle('🏆 **結果発表** 🏆')
+                            .setDescription(`${wolfOutput}${citizenOutput}${voteOutput}\n\n村人たちは人狼を当てられなかった... \n**人狼の勝利！** 🎉`)
+                            .setColor('Red');
+                        await interaction.reply({ embeds: [resultEmbed] });
                     } else {
+                        const resultEmbed = new EmbedBuilder()
+                            .setTitle('🐺 **ウルフ投票結果** 🐺')
+                            .setDescription(`ウルフは **@${wolfPlayer}** でした...\nウルフは市民側のワードを推測して的中することで逆転勝利するチャンス！！ 🎯\n\n${voteOutput}`)
+                            .setColor('Gold');
+
                         const answerButton = new ButtonBuilder()
-                            .setCustomId('wolf_guess')
-                            .setLabel('市民のワードを予想')
+                            .setCustomId('wolf_guess_modal')
+                            .setLabel('市民のワードを予想してね！')
                             .setStyle(ButtonStyle.Primary);
 
                         const actionRow = new ActionRowBuilder().addComponents(answerButton);
 
                         await interaction.reply({ embeds: [resultEmbed], components: [actionRow] });
 
-                        const filter = i => i.customId === 'wolf_guess' && i.user.id === mostVotedId;
-                        const collector = interaction.channel.createMessageComponentCollector({ filter, time: 30000 });
+                        const filter = (i) => i.customId === 'wolf_guess_modal';
+                        const collector = interaction.channel.createMessageComponentCollector({ filter });
 
-                        collector.on('collect', async i => {
-                            await i.reply({ content: '市民のワードを入力してください:', ephemeral: true });
+                        collector.on('collect', async (i) => {
+                            if (i.user.id !== mostVotedId) {
+                                if (!i.replied && !i.deferred) {
+                                    await i.reply({ content: '君は人狼じゃないだろう！実に馬鹿だな！♠️', ephemeral: true });
+                                }
+                                return;
+                            }
 
-                            const messageFilter = m => m.author.id === mostVotedId;
-                            const messageCollector = interaction.channel.createMessageCollector({ filter: messageFilter, time: 30000 });
+                            const options = wordGroups
+                                .find((group) => group.words.includes(wolfWord) || group.words.includes(citizenWord))
+                                ?.words.filter((word) => word !== wolfWord)
+                                .map((word) => ({
+                                    label: word.toString(),
+                                    value: word.toString(),
+                                }));
 
-                            messageCollector.on('collect', async msg => {
-                                const guess = msg.content.toLowerCase();
-                                if (guess === citizenWord.toLowerCase()) {
-                                    resultEmbed.addFields({ name: '🎯 **逆転勝利！**', value: 'ウルフ🐺が市民のワードを当てました！ウルフの勝利です！ 😈' });
+                            if (!options || options.length < 2) {
+                                console.error('エラー: ワードオプションが不足しています。');
+                                if (!i.replied && !i.deferred) {
+                                    await i.reply({ content: '選択肢が正しく設定されていません。', ephemeral: true });
                                 } else {
-                                    resultEmbed.addFields({ name: '🏆 **結果**', value: 'ウルフは市民のワードを当てられませんでした！村人たちの勝利です！ 🎉' });
+                                    await i.editReply({ content: '選択肢が正しく設定されていません。' });
                                 }
-                                messageCollector.stop();
-                                await interaction.followUp({ embeds: [resultEmbed] });
-                            });
+                                return;
+                            }
 
-                            messageCollector.on('end', collected => {
-                                if (collected.size === 0) {
-                                    i.followUp({ content: '時間切れです！', ephemeral: true });
+                            const modal = new ModalBuilder()
+                                .setCustomId('guess_word_modal')
+                                .setTitle('ワード予想')
+                                .addComponents(
+                                    new ActionRowBuilder().addComponents(
+                                        new StringSelectMenuBuilder()
+                                            .setCustomId('citizen_word_guess')
+                                            .setPlaceholder('市民のワードを選んでください')
+                                            .addOptions(options)
+                                    )
+                                );
+
+                            try {
+                                if (!i.replied && !i.deferred) {
+                                    await i.showModal(modal);
+                                } else {
+                                    console.error('既に応答済みのインタラクションでモーダルを送信しようとしました。');
                                 }
-                            });
+                            } catch (error) {
+                                console.error('モーダル送信エラー:', error);
+                            }
                         });
                     }
                 }
@@ -161,4 +196,4 @@ module.exports = {
             }
         }
     ]
-}
+};
