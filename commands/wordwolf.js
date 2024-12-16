@@ -320,7 +320,7 @@ module.exports = {
             }
         },
         {
-            data:SlashCommandBuilder()
+            data: new SlashCommandBuilder()
                 .setName('__debug__')
                 .setDescription('(開発者用) ログをonにします'),
             execute: async function(interaction){
