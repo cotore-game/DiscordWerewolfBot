@@ -1,5 +1,6 @@
 // SlashCommandBuilder という部品を discord.js からインポート
 const { SlashCommandBuilder } = require('discord.js');
+const words = require('../gameData/wtf.json');
 
 // 以下の形式にすることで、他のファイルでインポートして使用できるようになるらしい。
 module.exports = {
@@ -26,18 +27,7 @@ module.exports = {
                 .setName('wtf')
                 .setDescription('迷言'),
             execute: async function(interaction) {
-                const jokes = [
-                    'うわなにをするくぁwせdrftgyふじこlp',
-                    '病気かな？ 病気じゃないよ 病気だよ',
-                    'まるで将棋だな。',
-                    'おもしれー女',
-                    '真の男女平等主義者な俺は、女の子相手でもドロップキックをくらわせられる男',
-                    '芋けんぴ髪に付いてたよ',
-                    'ギャーギャーギャーギャーやかましいんだよ。発情期ですかコノヤロー',
-                    '野球拳をしたら全裸になるのが常識だろう？',
-                    '健康的な下乳を見ると健康になれるから最高！！'
-                ];
-                const joke = jokes[Math.floor(Math.random() * jokes.length)];
+                const joke = words.phrases[Math.floor(Math.random() * words.phrases.length)];
                 await interaction.reply(joke);
             }
         }
