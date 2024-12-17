@@ -83,8 +83,8 @@ module.exports = {
                 ];
                 const joke = jokes[Math.floor(Math.random() * jokes.length)];
                 await interaction.reply(joke);
-            },
-        },
+            }
+        }
     ]
 };
 
