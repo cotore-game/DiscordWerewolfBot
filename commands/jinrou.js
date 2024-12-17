@@ -9,11 +9,10 @@ const {
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
-    time
+    EmbedBuilder
 } = require('discord.js');
 const fs = require('fs');
-const Path = require('path');
-const roleFilePath = './gameData/werewolf/role.json';
+const roleFilePath = './gameData/werewolf/roles.json';
 const configFilePath = './gameData/werewolf/setting.json';
 
 // 参加者リストを保持するセット
@@ -62,6 +61,14 @@ function saveConfigData(config) {
 
 // 初期データ読み込み
 loadRoleData();
+
+// 役職名を選択肢に変換する関数
+function generateRoleChoices() {
+    return roleInfo.map(role => ({
+        name: role.RoleName,
+        value: role.RoleName
+    }));
+}
 
 module.exports = {
     commands: [
@@ -146,14 +153,15 @@ module.exports = {
             }
         },
         {
-            // 役職情報を表示するコマンド
             data: new SlashCommandBuilder()
                 .setName('jinrou_roleinfo')
-                .setDescription('役職の説明を表示します')
+                .setDescription('役職の説明をコマンドの使用者にのみ表示します')
                 .addStringOption(option =>
-                    option.setName('rolename')
-                        .setDescription('知りたい役職名を入力')
+                    option
+                        .setName('rolename')
+                        .setDescription('役職名を選択してください')
                         .setRequired(true)
+                        .addChoices(...generateRoleChoices()) // 動的に選択肢を追加
                 ),
             execute: async function (interaction) {
                 const roleName = interaction.options.getString('rolename');
@@ -173,7 +181,7 @@ module.exports = {
                     )
                     .setColor(0x0099FF);
 
-                await interaction.reply({ embeds: [embed] });
+                await interaction.reply({ embeds: [embed], ephemeral: true });
             }
         },
         {
