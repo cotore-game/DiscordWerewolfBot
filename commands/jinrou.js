@@ -294,3 +294,43 @@ function updateChannelPermissions(channelId, memberId, allow = true) {
         SEND_MESSAGES: allow,
     }).catch(console.error);
 }
+
+/**
+ * TimerSet - 指定した秒数でタイマーを設定
+ * @param {string} channelId - タイマーを表示するチャンネルのID
+ * @param {number} timerSec - タイマーの秒数
+ */
+async function TimerSet(channelId, timerSec) {
+    if (timerSec <= 0) {
+        console.error('タイマー秒数が無効です。正の整数を指定してください。');
+        return;
+    }
+
+    let remainingTime = timerSec;
+
+    // タイマー開始Embed
+    const embed = new EmbedBuilder()
+        .setTitle('⏳ タイマー開始')
+        .setDescription(`**残り時間: ${remainingTime}秒**`)
+        .setColor(0x00FF00);
+
+    // 初期メッセージ送信
+    const timerMessage = await sendMessage(channelId, { embeds: [embed] });
+
+    // タイマー処理
+    const timer = setInterval(async () => {
+        remainingTime--;
+
+        // タイマー終了時
+        if (remainingTime <= 0) {
+            clearInterval(timer);
+            embed.setDescription('**タイマーが終了しました！**').setColor(0xFF0000);
+            await timerMessage.edit({ embeds: [embed] });
+            return;
+        }
+
+        // タイマー進行中の更新
+        embed.setDescription(`**残り時間: ${remainingTime}秒**`);
+        await timerMessage.edit({ embeds: [embed] });
+    }, 1000); // 1秒ごとに実行
+}
