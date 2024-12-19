@@ -14,6 +14,8 @@ const {
 const roleFile = require('../gameData/werewolf/roles.json');
 const configFile = require('../gameData/werewolf/setting.json');
 //const client = require('../index.js');
+//const { sendMessage, updateChannelPermissions } = require('../index.js');
+const client = require('../client.js'); // 循環依存回避 client専用のファイルから取得する
 
 // 参加者リストを保持するセット
 const participants = new Set();
@@ -143,7 +145,7 @@ module.exports = {
                     }
 
                     const embed = new EmbedBuilder()
-                        .setTitle('あなたの役職が割り当てられました！')
+                        .setTitle('↓君の役職↓！')
                         .setDescription(`**役職名**: ${role.RoleName}\n**説明**: ${role.Description}`)
                         .addFields(
                             { name: '性別', value: gender, inline: true },
@@ -267,4 +269,28 @@ function nextDay(){
     gameProgress.turnState.knightTarget = null;
     gameProgress.turnState.frozen = null;
     gameProgress.turnState.investigated = null;
+}
+
+// 特定のチャンネルに送信
+function sendMessage(channelId, message) {
+    const channel = client.channels.cache.get(channelId);
+    if (!channel) {
+        console.error(`チャンネルID ${channelId} が見つかりません`);
+        return;
+    }
+    channel.send(message).catch(console.error);
+}
+
+// 権限変更
+function updateChannelPermissions(channelId, memberId, allow = true) {
+    const channel = client.channels.cache.get(channelId);
+    if (!channel) {
+        console.error(`チャンネルID ${channelId} が見つかりません`);
+        return;
+    }
+
+    channel.permissionOverwrites.edit(memberId, {
+        VIEW_CHANNEL: allow,
+        SEND_MESSAGES: allow,
+    }).catch(console.error);
 }

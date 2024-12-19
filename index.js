@@ -1,12 +1,12 @@
 const { 
-    Client,
     Events,
-    GatewayIntentBits
 } = require('discord.js');
 const { token: DISCORD_BOT_TOKEN } = require('./config.json');
 //const { commands } = require('./commands/fund.js');
 // ディレクトリから読み込む為に必要
 const { readdirSync } = require('fs');
+// 循環依存を回避する策略
+const client = require('./client.js');
 
 // コマンドを保持するマップ
 const commands = new Map();
@@ -23,8 +23,7 @@ for (const file of commandFiles) {
 }
 
 // クライアントインスタンスを作成
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-module.exports = client;
+//client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 // クライアントオブジェクトが準備OKとなったとき一度だけ実行される(と思う)
 client.once(Events.ClientReady, c => {
