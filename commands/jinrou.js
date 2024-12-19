@@ -11,9 +11,9 @@ const {
     TextInputStyle,
     EmbedBuilder
 } = require('discord.js');
-const fs = require('fs');
-const roleFilePath = './gameData/werewolf/roles.json';
-const configFilePath = './gameData/werewolf/setting.json';
+const roleFile = require('../gameData/werewolf/roles.json');
+const configFile = require('../gameData/werewolf/setting.json');
+//const client = require('../index.js');
 
 // 参加者リストを保持するセット
 const participants = new Set();
@@ -26,45 +26,24 @@ const gameStatus = Object.freeze({
 
 let gameState = gameStatus.waiting; // ゲームの状態
 
-let gameSettings = { // ゲーム設定の初期値 jsonでいずれ管理したい。DBでもいいよ
-    roles: {
-        seer: 1,
-        werewolf: 1,
-        villager: 2
-    },
-    minPlayers: 1,
-    firstNightSeer: true
+let gameProgress = {
+    dayCount: 0,                   // 経過日数
+    stakeholderDeathDays: null,    // ステークホルダー死亡日数 (nullで未死亡)
+    dazaiActionCount: 0,           // 太宰の活動回数
+    roles: {},                     // 全員の役職
+    lightWarrior: null,            // 光の戦士
+    demonTarget: null,             // 悪魔の指名先
+    turnState: {
+        investigated: null,        // 占われた人
+        frozen: null,              // 雪女による発言不能者
+        disabled: [],              // 行動不能者リスト (発狂者、太宰)
+        knightTarget: null         // 騎士の守る対象
+    }
 };
-
-let roleInfo = [];
-let gameConfig = {};
-
-// 役職データ読み込み関数
-function loadRoleData() {
-    try {
-        const data = fs.readFileSync(roleFilePath, 'utf8');
-        roleInfo = JSON.parse(data);
-    } catch (error) {
-        console.error('役職データの読み込みに失敗しました:', error);
-        roleInfo = [];
-    }
-}
-
-// 設定データの保存関数
-function saveConfigData(config) {
-    try {
-        fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
-    } catch (error) {
-        console.error('設定データの保存に失敗しました:', error);
-    }
-}
-
-// 初期データ読み込み
-loadRoleData();
 
 // 役職名を選択肢に変換する関数
 function generateRoleChoices() {
-    return roleInfo.map(role => ({
+    return roleFile.map(role => ({
         name: role.RoleName,
         value: role.RoleName
     }));
@@ -93,7 +72,7 @@ module.exports = {
                 const actionRow = new ActionRowBuilder().addComponents(joinButton);
 
                 await interaction.reply({
-                    content: '新しいゲームが始まりました！下のボタンを押して参加してください。',
+                    content: '**新しいゲームが始まりました！**\n人狼ゲームに参加する人は下のボタンを押して参加してください。',
                     components: [actionRow]
                 });
 
@@ -102,12 +81,12 @@ module.exports = {
 
                 collector.on('collect', async i => {
                     if (gameState !== gameStatus.waiting) {
-                        await i.reply({ content: '現在のゲームは進行中か終了済みのため、参加できません。', ephemeral: true });
+                        await i.reply({ content: '現在のゲームは進行中か終了済みのため、参加できないよ。', ephemeral: true });
                         return;
                     }
 
                     if (participants.has(i.user)) {
-                        await i.reply({ content: 'あなたはすでに参加しています！', ephemeral: true });
+                        await i.reply({ content: '⚠️ 君はすでに参加してるよ？目立ちたがり屋なんだね。', ephemeral: true });
                     } else {
                         participants.add(i.user);
                         await i.reply(`${i.user.username} さんが参加しました！`);
@@ -120,9 +99,9 @@ module.exports = {
             data: new SlashCommandBuilder()
                 .setName('jinrou_startgame')
                 .setDescription('現在の参加者でゲームを開始します'),
-            execute: async function(interaction) {
+            execute: async function (interaction) {
                 // 例外処理
-                if(gameState === gameStatus.ended) {
+                if (gameState === gameStatus.ended) {
                     await interaction.reply(`ゲームを開始できません。新規ゲームを作成してください。`);
                     return;
                 }
@@ -132,24 +111,57 @@ module.exports = {
                     return;
                 }
 
-                if (participants.size < gameSettings.minPlayers) {
-                    await interaction.reply(`ゲームを開始できません。最低人数 (${gameSettings.minPlayers}) に達していません。`);
+                if (participants.size < 4) {
+                    await interaction.reply('ゲームを開始できません。参加人数が4人未満です。');
                     return;
                 }
 
-                //ゲーム開始時のDM
-                const userList = Array.from(participants).map(user => user.username).join(', ');
+                const numOfPpl = participants.size;
+                const setting = configFile.find(config => config.NumOfPpl === numOfPpl)?.Setting;
 
-                for (const user of participants) {
+                if (!setting) {
+                    await interaction.reply(`設定ファイルに ${numOfPpl} 人の配役が見つかりませんでした。管理者に連絡してください。`);
+                    return;
+                }
+
+                // プレイヤー配役をランダム化
+                const roles = Object.entries(setting).flatMap(([role, count]) => Array(count).fill(role));
+                const shuffledRoles = roles.sort(() => Math.random() - 0.5);
+                const players = Array.from(participants);
+                const genders = players.map(() => (Math.random() < 0.5 ? '男' : '女')); // ランダムで性別割当
+
+                // 各プレイヤーに役職を配布
+                for (let i = 0; i < players.length; i++) {
+                    const user = players[i];
+                    const roleName = shuffledRoles[i];
+                    const gender = genders[i];
+                    const role = roleFile.find(r => r.RoleName === roleName);
+
+                    if (!role) {
+                        console.error(`役職データが見つかりません: ${roleName}`);
+                        continue;
+                    }
+
+                    const embed = new EmbedBuilder()
+                        .setTitle('あなたの役職が割り当てられました！')
+                        .setDescription(`**役職名**: ${role.RoleName}\n**説明**: ${role.Description}`)
+                        .addFields(
+                            { name: '性別', value: gender, inline: true },
+                            { name: '陣営', value: role.Party, inline: true },
+                            { name: '白黒', value: role.Identity, inline: true }
+                        )
+                        .setColor(0x0099FF);
+
                     try {
-                        await user.send('ゲームが開始されました！楽しんでください！');
+                        console.log(`${user.username}: 役職/${role.RoleName}`);
+                        await user.send({ embeds: [embed] });
                     } catch (error) {
                         console.error(`DM送信に失敗しました: ${user.username}`);
                     }
                 }
 
                 gameState = gameStatus.active;
-                await interaction.reply(`ゲームが開始されました！参加者: ${userList}`);
+                await interaction.reply(`ゲームが開始されました！各プレイヤーに役職が配布されました。`);
             }
         },
         {
@@ -165,10 +177,10 @@ module.exports = {
                 ),
             execute: async function (interaction) {
                 const roleName = interaction.options.getString('rolename');
-                const role = roleInfo.find(r => r.RoleName === roleName);
+                const role = roleFile.find(r => r.RoleName === roleName);
 
                 if (!role) {
-                    await interaction.reply({ content: 'その役職は存在しません。', ephemeral: true });
+                    await interaction.reply({ content: 'その役職は存在しないよ？！(ﾟ∀ﾟ)', ephemeral: true });
                     return;
                 }
 
@@ -179,59 +191,80 @@ module.exports = {
                         { name: '陣営', value: role.Party, inline: true },
                         { name: '白黒', value: role.Identity, inline: true }
                     )
-                    .setColor(0x0099FF);
+                    .setColor(0x191970);
 
                 await interaction.reply({ embeds: [embed], ephemeral: true });
             }
         },
         {
-            // 役職設定を入力・保存するコマンド
             data: new SlashCommandBuilder()
-                .setName('jinrou_config')
-                .setDescription('役職の人数や有無を設定します'),
+                .setName('jinrou_progress')
+                .setDescription('ゲームの進行状況を表示します (GM専用)'),
+            execute: async function(interaction) {
+                // 経過日数、太宰回数、ステークホルダーの状況などを表示
+                const progressEmbed = new EmbedBuilder()
+                    .setTitle('現在のゲーム進行状況')
+                    .addFields(
+                        { name: '経過日数', value: `${gameProgress.dayCount} 日目`, inline: true },
+                        { name: '太宰の活動回数', value: `${gameProgress.dazaiActionCount} 回`, inline: true },
+                        { name: 'ステークホルダー死亡日', value: gameProgress.stakeholderDeathDays !== null ? `${gameProgress.stakeholderDeathDays} 日目` : '未死亡', inline: true },
+                        { name: '光の戦士', value: gameProgress.lightWarrior || '未指名', inline: true },
+                        { name: '悪魔の指名先', value: gameProgress.demonTarget || '未指名', inline: true },
+                        { name: '行動不能者', value: gameProgress.turnState.disabled.length > 0 ? gameProgress.turnState.disabled.join(', ') : 'なし', inline: false },
+                        { name: '騎士の守る対象', value: gameProgress.turnState.knightTarget || '未指定', inline: true },
+                        { name: '雪女の発言不能', value: gameProgress.turnState.frozen || 'なし', inline: true }
+                    )
+                    .setColor(0xFF4500);
+
+                await interaction.reply({ embeds: [progressEmbed], ephemeral: true });
+            }
+        },
+        {
+            // 仮想メンバーを追加するコマンド
+            data: new SlashCommandBuilder()
+                .setName('jinrou_addbot')
+                .setDescription('仮想メンバーをゲームに追加します')
+                .addStringOption(option =>
+                    option.setName('botname')
+                        .setDescription('仮想メンバーの名前を指定します')
+                        .setRequired(true)
+                ),
             execute: async function (interaction) {
-                // モーダル表示
-                const modal = new ModalBuilder()
-                    .setCustomId('jinrou_config_modal')
-                    .setTitle('役職設定');
+                // ゲームが進行中または終了済みの場合はエラー
+                if (gameState !== gameStatus.waiting) {
+                    await interaction.reply({ content: '仮想メンバーを追加できません。', ephemeral: true });
+                    return;
+                }
 
-                const rolesInput = new TextInputBuilder()
-                    .setCustomId('roles_input')
-                    .setLabel('役職ごとの人数設定 (例: 占い師=1,人狼=2)')
-                    .setStyle(TextInputStyle.Paragraph)
-                    .setPlaceholder('役職=人数 をカンマ区切りで入力してください。')
-                    .setRequired(true);
+                const botName = interaction.options.getString('botname');
+                const botUser = {
+                    username: botName,
+                    id: interaction.user.id, // 実行者ID + タイムスタンプで一意のIDを生成
+                    isBot: false,
+                    addedBy: interaction.user.id // 実行者のIDを保存
+                };
 
-                const actionRow = new ActionRowBuilder().addComponents(rolesInput);
-                modal.addComponents(actionRow);
+                // 仮想メンバーを参加者リストに追加
+                participants.add(botUser);
 
-                await interaction.showModal(modal);
-
-                // モーダル送信後の処理
-                const filter = i => i.customId === 'jinrou_config_modal';
-                interaction.client.once('interactionCreate', async (modalInteraction) => {
-                    if (!filter(modalInteraction)) return;
-
-                    const input = modalInteraction.fields.getTextInputValue('roles_input');
-                    const newConfig = {};
-
-                    try {
-                        // 入力をパースして保存
-                        input.split(',').forEach(item => {
-                            const [role, count] = item.split('=').map(s => s.trim());
-                            newConfig[role] = parseInt(count, 10);
-                        });
-
-                        saveConfigData(newConfig);
-                        gameConfig = newConfig;
-
-                        await modalInteraction.reply({ content: '設定が保存されました！', ephemeral: true });
-                    } catch (error) {
-                        console.error('設定の保存中にエラー:', error);
-                        await modalInteraction.reply({ content: '設定の保存に失敗しました。形式を確認してください。', ephemeral: true });
-                    }
-                });
+                await interaction.reply({ content: `仮想メンバー「${botName}」をゲームに追加しました。現在の参加者数: ${participants.size}`, ephemeral: false });
             }
         }
     ]
 };
+
+function nextDay(){
+    gameProgress.dayCount++; // 日数を進める
+
+    // ステークホルダー死亡から4日経過時の敗北判定
+    if (gameProgress.stakeholderDeathDays !== null &&
+        gameProgress.dayCount - gameProgress.stakeholderDeathDays >= 4) {
+        return;
+    }
+
+    // 状態リセット (行動不能者、守護対象、雪女の効果など)
+    gameProgress.turnState.disabled = [];
+    gameProgress.turnState.knightTarget = null;
+    gameProgress.turnState.frozen = null;
+    gameProgress.turnState.investigated = null;
+}

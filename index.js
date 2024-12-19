@@ -24,6 +24,7 @@ for (const file of commandFiles) {
 
 // クライアントインスタンスを作成
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+module.exports = client;
 
 // クライアントオブジェクトが準備OKとなったとき一度だけ実行される(と思う)
 client.once(Events.ClientReady, c => {
