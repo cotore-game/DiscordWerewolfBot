@@ -9,7 +9,8 @@ const {
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
-    EmbedBuilder
+    EmbedBuilder,
+    PermissionsBitField
 } = require('discord.js');
 const roleFile = require('../gameData/werewolf/roles.json');
 const configFile = require('../gameData/werewolf/setting.json');
@@ -251,6 +252,20 @@ module.exports = {
 
                 await interaction.reply({ content: `仮想メンバー「${botName}」をゲームに追加しました。現在の参加者数: ${participants.size}`, ephemeral: false });
             }
+        },
+        {
+            data: new SlashCommandBuilder()
+                .setName('testfunction')
+                .setDescription('テスト機能')
+                .addUserOption(option =>
+                    option.setName('username')
+                        .setDescription('ユーザー')
+                        .setRequired(true)
+                ),
+            execute: async function (interaction) {
+
+                await interaction.reply('廃止');
+            }
         }
     ]
 };
@@ -278,7 +293,7 @@ function sendMessage(channelId, message) {
         console.error(`チャンネルID ${channelId} が見つかりません`);
         return;
     }
-    channel.send(message).catch(console.error);
+    return channel.send(message).catch(console.error);
 }
 
 // 権限変更
@@ -290,8 +305,7 @@ function updateChannelPermissions(channelId, memberId, allow = true) {
     }
 
     channel.permissionOverwrites.edit(memberId, {
-        VIEW_CHANNEL: allow,
-        SEND_MESSAGES: allow,
+        ViewChannel: allow
     }).catch(console.error);
 }
 
@@ -310,12 +324,19 @@ async function TimerSet(channelId, timerSec) {
 
     // タイマー開始Embed
     const embed = new EmbedBuilder()
-        .setTitle('⏳ タイマー開始')
-        .setDescription(`**残り時間: ${remainingTime}秒**`)
+        .setTitle('⏳ タイマー')
+        .setDescription(`**残り時間: ${formatTime(remainingTime)}**`)
         .setColor(0x00FF00);
 
     // 初期メッセージ送信
     const timerMessage = await sendMessage(channelId, { embeds: [embed] });
+
+    try {
+        // メッセージをピン留め
+        await timerMessage.pin();
+    } catch (error) {
+        console.error('メッセージのピン留めに失敗しました:', error);
+    }
 
     // タイマー処理
     const timer = setInterval(async () => {
@@ -324,13 +345,30 @@ async function TimerSet(channelId, timerSec) {
         // タイマー終了時
         if (remainingTime <= 0) {
             clearInterval(timer);
-            embed.setDescription('**タイマーが終了しました！**').setColor(0xFF0000);
+            embed.setDescription('**時間切れ！**').setColor(0xFF0000);
             await timerMessage.edit({ embeds: [embed] });
+
+            // ピン留め解除
+            try {
+                await timerMessage.unpin();
+            } catch (error) {
+                console.error('メッセージのピン留め解除に失敗しました:', error);
+            }
+
             return;
         }
 
         // タイマー進行中の更新
-        embed.setDescription(`**残り時間: ${remainingTime}秒**`);
+        embed.setDescription(`**残り時間: ${formatTime(remainingTime)}**`);
         await timerMessage.edit({ embeds: [embed] });
     }, 1000); // 1秒ごとに実行
+}
+
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes > 0) {
+        return `${minutes}分${remainingSeconds}秒`;
+    }
+    return `${remainingSeconds}秒`;
 }
