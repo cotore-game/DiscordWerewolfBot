@@ -1,0 +1,116 @@
+[
+    {
+        "RoleName": "市民",
+        "Description": "ただの村人Aです。",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "占い師",
+        "Description": "毎晩1人を占い、市民かどうかを調べることができる。",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "霊媒師",
+        "Description": "毎晩その日の追放者が市民かどうかを調べることができる。",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "騎士",
+        "Description": "毎晩1人を守り、人狼による殺害を防ぐことができる。\n⚠️連続で同じ人を指定することは出来ない",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "ゴリラ",
+        "Description": "ゲーム中ずっとウホウホしか言えない。",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "役職発表ドラゴン",
+        "Description": "占い師と同じ能力。ただし発表の際にリズムを取る必要がある。(VCやリアルで行う場合)",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "ステークホルダー",
+        "Description": "死亡後、会議を3回経た後に村陣営が敗北する。死亡したことは公開されない。",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "好きな惣菜配給ドラゴン",
+        "Description": "生存中、毎朝惣菜が配給される(パン屋と同じ能力)。",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "発狂者",
+        "Description": "毎夜1人を指名し、行動不能にする。\n⚠️連続で同じ人を指定することは出来ない",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "太宰治",
+        "Description": "毎夜、心中に失敗し女性1人を行動不能にする。3日後、4日目の夜に死ぬ。\n⚠️連続で同じ人を指定することは出来ない",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "オオカミ少年",
+        "Description": "自身を人狼と偽り続けなければならない。",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "三島由紀夫",
+        "Description": "占われると翌朝に演説をし、死亡する。\n⚠️この役職の人は自らCOすることも禁止である",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "雪女",
+        "Description": "占いや霊媒で見られると氷漬けにされ、次の会議で発言できなくなる。",
+        "Party": "村人陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "一匹狼",
+        "Description": "占いでは狼陣営と結果が出るが、ただの市民。",
+        "Party": "村人陣営",
+        "Identity": "人外"
+    },
+    {
+        "RoleName": "人狼",
+        "Description": "毎晩1人を選んで殺害する。人狼は周囲(市民陣営)に正体がバレないように行動する。",
+        "Party": "人狼陣営",
+        "Identity": "人外"
+    },
+    {
+        "RoleName": "狂人",
+        "Description": "人狼を勝利へ導く為に存在する市民。",
+        "Party": "人狼陣営",
+        "Identity": "市民"
+    },
+    {
+        "RoleName": "悪魔",
+        "Description": "初夜に1人を指定し、その人物が追放されると自身が生存していれば単独勝利する。",
+        "Party": "第三陣営",
+        "Identity": "人外"
+    },
+    {
+        "RoleName": "陰謀論者",
+        "Description": "初夜に指定したプレイヤーを光の戦士と信じる。光の戦士勝利時に生存していれば単独勝利する。",
+        "Party": "第三陣営",
+        "Identity": "人外"
+    },
+    {
+        "RoleName": "後継",
+        "Description": "最初に死亡した役職の能力と勝利条件を必ず引き継ぐ。",
+        "Party": "可変",
+        "Identity": "市民"
+    }
+]

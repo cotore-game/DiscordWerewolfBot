@@ -7,6 +7,7 @@ const {
     StringSelectMenuBuilder
 } = require('discord.js');
 const wordGroups = require('../gameData/wordwolf/wordgroupsData.json'); // 外部ファイルからワード群をインポート
+const { admin: ADMIN } = require('./config.json');
 
 const gameStatus = Object.freeze({
     waiting: 'waiting',
@@ -324,7 +325,7 @@ module.exports = {
                 .setName('__debug__')
                 .setDescription('(開発者用) ログをonにします'),
             execute: async function(interaction){
-                if(interaction.user.username === 'suoqa'){
+                if(interaction.user.username === ADMIN){
                     Isdebug = !Isdebug;
                     await interaction.reply({ content: `Debug:${Isdebug}`, ephemeral: true});
                 }else{
